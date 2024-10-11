@@ -251,3 +251,94 @@ public class Note {
         }
     }
 }
+public static boolean deleteNote(Context context, long noteId) {
+        if (noteId <= 0) {
+            throw new IllegalArgumentException("Wrong note id:" + noteId);
+        }
+
+        int rowsDeleted = context.getContentResolver().delete(
+                ContentUris.withAppendedId(Notes.CONTENT_NOTE_URI, noteId), null, null);
+
+        return rowsDeleted > 0;
+    }
+
+    /**
+     * 根据条件查询笔记
+     * @param context 上下文
+     * @param selection 查询条件
+     * @param selectionArgs 查询参数
+     * @return 查询结果的游标
+     */
+    public static Cursor queryNotes(Context context, String selection, String[] selectionArgs) {
+        return context.getContentResolver().query(
+                Notes.CONTENT_NOTE_URI, null, selection, selectionArgs, null);
+    }
+
+    /**
+     * 备份笔记数据到本地文件
+     * @param context 上下文
+     * @param filePath 备份文件路径
+     * @return 是否备份成功
+     */
+    public static boolean backupNotes(Context context, String filePath) {
+        try {
+            Cursor cursor = context.getContentResolver().query(Notes.CONTENT_NOTE_URI, null, null, null, null);
+            if (cursor == null) {
+                return false;
+            }
+
+            FileOutputStream fos = new FileOutputStream(filePath);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+            while (cursor.moveToNext()) {
+                ContentValues values = new ContentValues();
+                DatabaseUtils.cursorRowToContentValues(cursor, values);
+                oos.writeObject(values);
+            }
+
+            cursor.close();
+            oos.close();
+            fos.close();
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, "Backup notes error: " + e.toString());
+            return false;
+        }
+    }
+
+    /**
+     * 从本地文件恢复笔记数据
+     * @param context 上下文
+     * @param filePath 备份文件路径
+     * @return 是否恢复成功
+     */
+    public static boolean restoreNotes(Context context, String filePath) {
+        try {
+            FileInputStream fis = new FileInputStream(filePath);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+
+            while (true) {
+                try {
+                    ContentValues values = (ContentValues) ois.readObject();
+                    context.getContentResolver().insert(Notes.CONTENT_NOTE_URI, values);
+                } catch (EOFException e) {
+                    break;
+                } catch (ClassNotFoundException e) {
+                    Log.e(TAG, "Restore notes error: " + e.toString());
+                    ois.close();
+                    fis.close();
+                    return false;
+                }
+            }
+
+            ois.close();
+            fis.close();
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, "Restore notes error: " + e.toString());
+            return false;
+        }
+    }
+
+    // ... 原有代码 ...
+}
