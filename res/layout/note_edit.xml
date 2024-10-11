@@ -115,7 +115,7 @@
                 android:background="@drawable/bg_color_btn_mask" />
         </LinearLayout>
     </LinearLayout>
-//添加button
+//添加button、设置按钮的长宽以及左、上、下外边距
     <ImageButton
         android:id="@+id/add_img_btn"
         android:layout_width="wrap_content"

@@ -177,15 +177,15 @@ public class NoteEditActivity extends Activity implements OnClickListener,
         initResources();
     }
 */
-    //添加新方法
-    private final int PHOTO_REQUEST=1;
+    //添加新方法，处理用户点击按钮以选择图片的功能
+    private final int PHOTO_REQUEST=1;//定义请求码，用于识别返回的结果
 
     @Override
 
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        this.setContentView(R.layout.note_edit);
-
+        super.onCreate(savedInstanceState);//onCreate 方法是 Activity 生命周期的一部分，通常在 Activity 创建时调用。
+        this.setContentView(R.layout.note_edit);//设置了布局视图为 note_edit。
+        //下段代码检查 savedInstanceState 是否为 null，并调用 initActivityState 方法来初始化 Activity 状态。如果初始化失败，就结束 Activity。
         if (savedInstanceState == null && !initActivityState(getIntent())) {
             finish();
             return;
@@ -203,9 +203,9 @@ public class NoteEditActivity extends Activity implements OnClickListener,
                 Intent loadImage = new Intent(Intent.ACTION_GET_CONTENT);
                 //Category属性用于指定当前动作（Action）被执行的环境.
                 //CATEGORY_OPENABLE; 用来指示一个ACTION_GET_CONTENT的intent
-                loadImage.addCategory(Intent.CATEGORY_OPENABLE);
-                loadImage.setType("image/*");
-                startActivityForResult(loadImage, PHOTO_REQUEST);
+                loadImage.addCategory(Intent.CATEGORY_OPENABLE);//创建一个意图来获取内容，指定要打开的类别为可打开的
+                loadImage.setType("image/*");//并设置 MIME 类型为所有图片类型
+                startActivityForResult(loadImage, PHOTO_REQUEST);//启动活动以让用户选择图片。
             }
         });
     }
@@ -363,17 +363,18 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             mNoteHeaderHolder.ivAlertIcon.setVisibility(View.GONE);
         };
     }
-//加入代码
-private void convertToImage() {
-    NoteEditText noteEditText = (NoteEditText) findViewById(R.id.note_edit_view); //获取当前的edit
-    Editable editable = noteEditText.getText();//1.获取text
-    String noteText = editable.toString(); //2.将note内容转换为字符串
-    int length = editable.length(); //内容的长度
-    //3.截取img片段 [local]+uri+[local]，提取uri
-    for(int i = 0; i < length; i++) {
-        for(int j = i; j < length; j++) {
-            String img_fragment = noteText.substring(i, j+1); //img_fragment：关于图片路径的片段
-            if(img_fragment.length() > 15 && img_fragment.endsWith("[/local]") && img_fragment.startsWith("[local]")){
+    //加入代码，目的是将文本中的特定格式的图片路径替换为实际的图片对象。
+    private void convertToImage() {
+        //查找 ID 为 note_edit_view 的控件，将返回的视图强制转换为 NoteEditText 类型
+        NoteEditText noteEditText = (NoteEditText) findViewById(R.id.note_edit_view); //获取当前的edit
+        Editable editable = noteEditText.getText();//1.获取控件中的文本内容
+        String noteText = editable.toString(); //2.将note内容转换为字符串
+        int length = editable.length(); //内容的长度
+        //3.截取img片段 [local]+uri+[local]，提取uri
+        for(int i = 0; i < length; i++) {
+            for(int j = i; j < length; j++) {
+                String img_fragment = noteText.substring(i, j+1); //img_fragment：关于图片路径的片段
+                if(img_fragment.length() > 15 && img_fragment.endsWith("[/local]") && img_fragment.startsWith("[local]")){
                 int limit = 7;  //[local]为7个字符
                 //[local][/local]共15个字符，剩下的为真正的path长度
                 int len = img_fragment.length()-15;
@@ -398,11 +399,11 @@ private void convertToImage() {
                     Editable edit_text = noteEditText.getEditableText();
                     edit_text.delete(i,i+len+15); //6.删掉图片路径的文字
                     edit_text.insert(i, spannableString); //7.在路径的起始位置插入图片
+                    }
                 }
             }
         }
     }
-}
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -966,46 +967,28 @@ private void convertToImage() {
     private void showToast(int resId, int duration) {
         Toast.makeText(this, resId, duration).show();
     }
-    //添加一块代码
+
     //获取文件的real path
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public String getPath(final Context context, final Uri uri) {
 
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;//检查当前 Android 版本是否为 KitKat 或更高。
 
         // DocumentProvider
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-            // ExternalStorageProvider
-//            if (isExternalStorageDocument(uri)) {
-//                final String docId = DocumentsContract.getDocumentId(uri);
-//                final String[] split = docId.split(":");
-//                final String type = split[0];
-//
-//                if ("primary".equalsIgnoreCase(type)) {
-//                    return Environment.getExternalStorageDirectory() + "/" + split[1];
-//                }
-//            }
-//            // DownloadsProvider
-//            else if (isDownloadsDocument(uri)) {
-//                final String id = DocumentsContract.getDocumentId(uri);
-//                final Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-//                return getDataColumn(context, contentUri, null, null);
-//            }
-            // MediaProvider
-//            else
-            if (isMediaDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
+            if (isMediaDocument(uri)) {//检查 uri 是否是媒体文档（例如图片、视频等）。
+                final String docId = DocumentsContract.getDocumentId(uri);//如果是，从 URI 中提取文档 ID。
+                final String[] split = docId.split(":");//将文档 ID 按照冒号 (:) 分隔成数组，第一部分是类型，第二部分是实际 ID。
+                final String type = split[0];//获取分隔后的第一部分，表示文档的类型
 
                 Uri contentUri = null;
-                if ("image".equals(type)) {
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                if ("image".equals(type)) {//是图片
+                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;//根据提取的类型设置相应的 contentUri。
                 }
 
-                final String selection = "_id=?";
-                final String[] selectionArgs = new String[]{split[1]};
-
+                final String selection = "_id=?";//过文档 ID 来过滤结果
+                final String[] selectionArgs = new String[]{split[1]};//取文档的实际ID
+                //执行查询并返回所需的数据列，例如文件的绝对路径。
                 return getDataColumn(context, contentUri, selection, selectionArgs);
             }
         }
@@ -1020,37 +1003,26 @@ private void convertToImage() {
         return null;
     }
 
-
     //获取数据列_获取此 Uri 的数据列的值。这对MediaStore Uris 和其他基于文件的 ContentProvider。
     public String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
 
-        Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = {column};
+        Cursor cursor = null;//声明一个 Cursor 对象来保存查询结果。
+        final String column = "_data";//定义了要查询的列名，这里选择的是 _data，通常用于存储文件路径或数据的位置。
+        final String[] projection = {column};//创建一个字符串数组，将列名包含在内。这个数组用于指定查询中需要返回的列。
 
         try {
+            //该行使用内容解析器根据提供的 URI 执行查询。projection、selection 和 selectionArgs 用于过滤和限制返回的数据。
             cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column_index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(column_index);
+            if (cursor != null && cursor.moveToFirst()) {//检查游标是否为 null，并移动到第一行，以确认查询返回了结果。
+                final int column_index = cursor.getColumnIndexOrThrow(column);//使用 getColumnIndexOrThrow 来获取指定列的索引。如果列不存在，将抛出异常。
+                return cursor.getString(column_index);//返回指定列的字符串值。
             }
-        } finally {
+        } finally {//在 finally 块中关闭游标以释放资源，确保即使发生异常也能正确关闭。
             if (cursor != null)
                 cursor.close();
         }
         return null;
     }
-
-
-    //是否为外部存储文件
-//    public boolean isExternalStorageDocument(Uri uri) {
-//        return "com.android.externalstorage.documents".equals(uri.getAuthority());
-//    }
-//
-//    //是否为下载文件
-//    public boolean isDownloadsDocument(Uri uri) {
-//        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
-//    }
 
     //是否为媒体文件
     public boolean isMediaDocument(Uri uri) {
@@ -1060,13 +1032,13 @@ private void convertToImage() {
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
         ContentResolver resolver = getContentResolver();
-        switch (requestCode) {
+        switch (requestCode) {//使用 switch 来处理不同的请求码，确保只有处理 PHOTO_REQUEST 的逻辑被执行。
             case PHOTO_REQUEST:
                 Uri originalUri = intent.getData(); //1.获得图片的真实路径
                 Bitmap bitmap = null;
                 try {
                     bitmap = BitmapFactory.decodeStream(resolver.openInputStream(originalUri));//2.解码图片
-                } catch (FileNotFoundException e) {
+                } catch (FileNotFoundException e) {//处理可能的 FileNotFoundException 异常。
                     Log.d(TAG, "onActivityResult: get file_exception");
                     e.printStackTrace();
                 }

@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*联系人数据库*/
+package net.micode.notes.data;//包定义，将这个类放在 net.micode.notes.data 包下
 
-package net.micode.notes.data;
-
-import android.content.Context;
-import android.database.Cursor;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.Data;
-import android.telephony.PhoneNumberUtils;
-import android.util.Log;
+import android.content.Context;//引入 Context 类，Context 提供了访问应用环境（如资源、数据库和文件等）的功能。
+import android.database.Cursor;//引入 Cursor 类，用于访问数据库查询结果。它提供了一种迭代数据行和列的方式，通常在查询数据库时使用。
+import android.provider.ContactsContract.CommonDataKinds.Phone;//引入 Phone 类，这是一个常量集合，定义了联系人信息的各种字段，特别是电话号码。它用于访问联系人数据库中的电话号码数据。
+import android.provider.ContactsContract.Data;//引入 Data 类，它代表联系人数据的通用接口。通常用于处理与联系人相关的数据。
+import android.telephony.PhoneNumberUtils;//引入 PhoneNumberUtils 类，它提供了一些工具方法来处理电话号码，例如格式化和验证电话号码。
+import android.util.Log;//引入 Log 类，它提供了用于记录日志的工具。开发者使用它来输出调试信息和错
 
 import java.util.HashMap;
 
 public class Contact {
-    private static HashMap<String, String> sContactCache;
+    private static HashMap<String, String> sContactCache;//用于定义一个静态的、私有的 HashMap 变量
     private static final String TAG = "Contact";
 
     private static final String CALLER_ID_SELECTION = "PHONE_NUMBERS_EQUAL(" + Phone.NUMBER
@@ -38,11 +38,11 @@ public class Contact {
 
     public static String getContact(Context context, String phoneNumber) {
         if(sContactCache == null) {
-            sContactCache = new HashMap<String, String>();
+            sContactCache = new HashMap<String, String>();//如果为空，初始化
         }
 
         if(sContactCache.containsKey(phoneNumber)) {
-            return sContactCache.get(phoneNumber);
+            return sContactCache.get(phoneNumber);//检查缓存中是否已有该电话号码的信息，如果有，直接返回
         }
 
         String selection = CALLER_ID_SELECTION.replace("+",
@@ -59,7 +59,7 @@ public class Contact {
                 String name = cursor.getString(0);
                 sContactCache.put(phoneNumber, name);
                 return name;
-            } catch (IndexOutOfBoundsException e) {
+            } catch (IndexOutOfBoundsException e) {//异常处理
                 Log.e(TAG, " Cursor get string error " + e.toString());
                 return null;
             } finally {
