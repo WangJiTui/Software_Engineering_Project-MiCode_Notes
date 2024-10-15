@@ -548,7 +548,7 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             case R.id.menu_delete_remind:
                 mWorkingNote.setAlertDate(0, false);
                 break;
-            case R.id.menu_count_word: // 数字统计
+case R.id.menu_count_word: // 数字统计
     AlertDialog.Builder builder1 = new AlertDialog.Builder(this); // 创建对话框对象
     builder1.setIcon(android.R.drawable.ic_dialog_alert); // 设置对话框图标为警告图标
     TextView content = (TextView) findViewById(R.id.note_edit_view); // 获取文本视图内容
@@ -558,7 +558,12 @@ public class NoteEditActivity extends Activity implements OnClickListener,
     int totalCount = text.length(); // 总字符数
     int englishCount = 0; // 英文字符计数
     int chineseCount = 0; // 中文字符计数
+    int digitCount = 0; // 数字字符计数
+    int punctuationCount = 0; // 标点符号计数
+    int whitespaceCount = 0; // 空白字符计数
     int specialCount = 0; // 特殊字符计数
+    int controlCount = 0; // 控制字符计数
+    int emojiCount = 0; // Emoji 字符计数
 
     // 遍历文本内容
     for (char ch : text.toCharArray()) {
@@ -568,9 +573,19 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             } else if (ch >= 0x4E00 && ch <= 0x9FFF) {
                 chineseCount++; // 中文字符
             } else {
-                specialCount++; // 其他字符（如符号）
+                specialCount++; // 其他语言字符（如西里尔、阿拉伯等）
             }
-        } else if (!Character.isWhitespace(ch)) {
+        } else if (Character.isDigit(ch)) {
+            digitCount++; // 数字字符
+        } else if (Character.isWhitespace(ch)) {
+            whitespaceCount++; // 空白字符
+        } else if (isPunctuation(ch)) {
+            punctuationCount++; // 标点符号
+        } else if (Character.getType(ch) == Character.CONTROL) {
+            controlCount++; // 控制字符
+        } else if (Character.UnicodeScript.of(ch) == Character.UnicodeScript.EMOJI) {
+            emojiCount++; // Emoji 字符
+        } else {
             specialCount++; // 统计其他非空白字符为特殊字符
         }
     }
@@ -579,7 +594,12 @@ public class NoteEditActivity extends Activity implements OnClickListener,
     builder1.setMessage("总字符数: " + totalCount + "\n" +
                          "英文字符数: " + englishCount + "\n" +
                          "中文字符数: " + chineseCount + "\n" +
-                         "特殊字符数: " + specialCount); // 设置对话框消息
+                         "数字字符数: " + digitCount + "\n" +
+                         "标点符号数: " + punctuationCount + "\n" +
+                         "空白字符数: " + whitespaceCount + "\n" +
+                         "控制字符数: " + controlCount + "\n" +
+                         "特殊字符数: " + specialCount + "\n" +
+                         "Emoji字符数: " + emojiCount); // 设置对话框消息
 
     builder1.setPositiveButton(android.R.string.ok, // 设置“确定”按钮
         new DialogInterface.OnClickListener() {
@@ -591,6 +611,8 @@ public class NoteEditActivity extends Activity implements OnClickListener,
     builder1.setNegativeButton(android.R.string.cancel, null); // 设置“取消”按钮，不做任何操作
     builder1.show(); // 显示对话框
     break;
+
+
 default:
 
                 break;
