@@ -358,8 +358,8 @@ public class NoteEditActivity extends Activity implements OnClickListener,
                 || ev.getX() > (x + view.getWidth())
                 || ev.getY() < y
                 || ev.getY() > (y + view.getHeight())) {
-                    return false;
-                }
+            return false;
+        }
         return true;
     }
 
@@ -395,6 +395,7 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             mFontSizeId = ResourceParser.BG_DEFAULT_FONT_SIZE;
         }
         mEditTextList = (LinearLayout) findViewById(R.id.note_edit_list);
+        speech_sum();
     }
 
     @Override
@@ -418,7 +419,7 @@ public class NoteEditActivity extends Activity implements OnClickListener,
         }
 
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] {
-            mWorkingNote.getWidgetId()
+                mWorkingNote.getWidgetId()
         });
 
         sendBroadcast(intent);
@@ -547,7 +548,22 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             case R.id.menu_delete_remind:
                 mWorkingNote.setAlertDate(0, false);
                 break;
-            default:
+            case R.id.menu_count_word://数字统计
+                AlertDialog.Builder builder1 = new AlertDialog.Builder(this);//对话框对象
+                builder1.setIcon(android.R.drawable.ic_dialog_alert);//对话框图标
+                TextView content=(TextView)findViewById(R.id.note_edit_view);
+                int c =content.length();
+                builder1.setMessage("带符号字数总和统计为："+ c);
+                builder1.setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                finish();
+                            }
+                        });//确定按钮
+                builder1.setNegativeButton(android.R.string.cancel, null);//取消按钮
+                builder1.show();//对话框启动
+                break;
+                default:
                 break;
         }
         return true;
@@ -869,5 +885,32 @@ public class NoteEditActivity extends Activity implements OnClickListener,
 
     private void showToast(int resId, int duration) {
         Toast.makeText(this, resId, duration).show();
+    }
+    public void speech_sum(){
+        EditText editable = findViewById(R.id.note_edit_view);
+//Toast.makeText(NoteEditActivity.this, editable.getText().toString(),Toast.LENGTH_SHORT).show();
+
+        final int[] tmp = new int[1];
+
+
+       
+    }
+    public String operateText(String str){
+        String dest = "";
+        Pattern p = Pattern.compile("\\s*|t|r|n");
+        Matcher m = p.matcher(str);
+        dest = m.replaceAll("");
+        return dest;
+    }
+    public String cutOfimage(String str){
+        String dest = str;
+        int index1 = dest.indexOf("[local]");
+        int index2 = dest.indexOf("[/local]");
+        while(index1 != -1 && index2 != -1){
+            dest = dest.substring(0,index1) + dest.substring(index2+8);
+            index1 = dest.indexOf("[local]");
+            index2 = dest.indexOf("[/local]");
+        }
+        return dest;
     }
 }
