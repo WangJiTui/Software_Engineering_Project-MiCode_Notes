@@ -164,6 +164,16 @@ public class GTaskClient {
         return true;
     }
 
+    //3.添加一个泛型方法closeQuietly，专门用于处理资源关闭问题
+    private <T extends AutoCloseable> void closeQuietly(T closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                Log.e(TAG, "Error closing resource", e);
+            }   
+        }
+    }
     private String loginGoogleAccount(Activity activity, boolean invalidateToken) {
         String authToken;
         AccountManager accountManager = AccountManager.get(activity);
@@ -291,36 +301,88 @@ public class GTaskClient {
         return httpPost;
     }
 
+    //定义一个名为getResponseContent的方法，接收一个HttpEntity类型的参数entity，并可能抛出IOException异常
     private String getResponseContent(HttpEntity entity) throws IOException {
-        String contentEncoding = null;
+        String contentEncoding = null;//这个变量将用于存储响应内容的编码类型。
+        //检查HttpEntity的内容编码是否为null，以决定是否需要处理编码。
         if (entity.getContentEncoding() != null) {
             contentEncoding = entity.getContentEncoding().getValue();
             Log.d(TAG, "encoding: " + contentEncoding);
         }
 
+        //获取实体内容的输入流。
         InputStream input = entity.getContent();
+        //检查contentEncoding是否不为null，判断内容是否被Gzip压缩
         if (contentEncoding != null && contentEncoding.equalsIgnoreCase("gzip")) {
             input = new GZIPInputStream(entity.getContent());
-        } else if (contentEncoding != null && contentEncoding.equalsIgnoreCase("deflate")) {
+        } 
+        //如果内容编码不是Gzip，检查是否为“deflate”编码
+        else if (contentEncoding != null && contentEncoding.equalsIgnoreCase("deflate")) {
             Inflater inflater = new Inflater(true);
             input = new InflaterInputStream(entity.getContent(), inflater);
         }
 
         try {
+            //创建一个InputStreamReader对象，使用之前获取的输入流input，以便能够按字符读取数据。
             InputStreamReader isr = new InputStreamReader(input);
+            //使用BufferedReader对InputStreamReader进行包装，以提高读取效率。BufferedReader可以一次读取一行数据。
             BufferedReader br = new BufferedReader(isr);
+            //创建一个StringBuilder对象，用于高效地构建字符串
             StringBuilder sb = new StringBuilder();
 
             while (true) {
                 String buff = br.readLine();
                 if (buff == null) {
+                    //返回StringBuilder中的字符串内容，使用sb.toString()将其转换为String类型。 
                     return sb.toString();
                 }
                 sb = sb.append(buff);
             }
-        } finally {
+        }catch (IOException e) {
+            e.printStackTrace(); // 添加异常处理
+        }finally {//1.使用try-catch-finally进行资源关闭
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace(); // 处理关闭时的异常
+                }
+            }
+            if (isr != null) {
+                try {
+                    isr.close();
+                } catch (IOException e) {
+                    e.printStackTrace(); // 处理关闭时的异常
+                }
+            }
             input.close();
         }
+    /*
+        //2.使用try-with-resourses关闭资源
+         try (InputStreamReader isr = new InputStreamReader(input);
+                BufferedReader br = new BufferedReader(isr)){
+                StringBuilder sb = new StringBuilder();
+                while (true) {
+                    String buff = br.readLine();
+                    if (buff == null) {
+                        return sb.toString();
+                    }
+                    sb = sb.append(buff);
+                }
+            }catch (IOException e) {
+                e.printStackTrace();
+            }finally{
+                input.close();
+            }
+        */
+    /*
+        //3.使用 closeQuietly 方法关闭资源
+        finally {
+            closeQuietly(br);
+            closeQuietly(isr);
+            closeQuietly(input);
+        }
+        */
     }
 
     private JSONObject postRequest(JSONObject js) throws NetworkFailureException {

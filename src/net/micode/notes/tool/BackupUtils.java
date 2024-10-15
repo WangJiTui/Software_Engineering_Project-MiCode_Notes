@@ -285,15 +285,20 @@ public class BackupUtils {
         /**
          * Get a print stream pointed to the file {@generateExportedTextFile}
          */
+        /*
+        //出现的问题：未关闭资源
+        //创建一个可以用于输出到文本文件的 PrintStream 对象
         private PrintStream getExportToTextPrintStream() {
-            File file = generateFileMountedOnSDcard(mContext, R.string.file_path,
-                    R.string.file_name_txt_format);
+            //调用 generateFileMountedOnSDcard 方法，传入上下文 mContext、文件路径（从资源文件中获取）和文件名格式（同样从资源文件中获取），生成一个文件对象 file。
+            File file = generateFileMountedOnSDcard(mContext, R.string.file_path, R.string.file_name_txt_format);
+            //file为null,则文件创建失败
             if (file == null) {
                 Log.e(TAG, "create file to exported failed");
                 return null;
             }
             mFileName = file.getName();
             mFileDirectory = mContext.getString(R.string.file_path);
+            //初始化一个 PrintStream 类型的变量 ps，初始值为 null。这个变量将用于输出数据。
             PrintStream ps = null;
             try {
                 FileOutputStream fos = new FileOutputStream(file);
@@ -308,6 +313,62 @@ public class BackupUtils {
             return ps;
         }
     }
+    */
+   //1.添加使用try-catch-finally的方法来关闭资源
+        private PrintStream getExportToTextPrintStream() {
+            File file = generateFileMountedOnSDcard(mContext, R.string.file_path,
+            R.string.file_name_txt_format);
+            if (file == null) {
+                Log.e(TAG, "create file to exported failed");
+                return null;
+                }
+                mFileName = file.getName();
+                mFileDirectory = mContext.getString(R.string.file_path);
+                PrintStream ps = null;
+                FileOutputStream fos = null; // 这里定义在外部，以便在 finally 块中访问
+                try {
+                    fos = new FileOutputStream(file);
+                    ps = new PrintStream(fos);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                        return null;
+                    } catch (NullPointerException e) {
+                        e.printStackTrace();
+                        return null;
+                    } finally {// 关闭资源
+                        if (ps != null) {
+                            try{
+                                ps.close(); // 关闭 PrintStream
+                                }catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        if (fos != null) {
+                            try {
+                                fos.close(); // 关闭 FileOutputStream
+                                } catch (IOException e) {
+                                    e.printStackTrace(); // 处理关闭时的异常
+                                }
+                            }
+                        }
+            return ps; // 返回 PrintStream,使得调用者能够使用这个流来写入数据
+            /*
+                //2.Java 7 及以上版本也可以使用try-with-resources方法，更方便的关闭资源
+
+                //将要关闭的资源声明在 try 后的括号中，在代码执行完成或者抛出异常时 Java 会自动将对应的资源关闭。
+                try (FileOutputStream fos = new FileOutputStream(file);
+                PrintStream ps = new PrintStream(fos)) {
+                return ps; // 直接返回 PrintStream
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                    return null;
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            */
+        }
+
 
     /**
      * Generate the text file to store imported data

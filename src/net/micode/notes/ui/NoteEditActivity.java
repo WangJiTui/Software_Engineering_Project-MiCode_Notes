@@ -17,37 +17,25 @@
 package net.micode.notes.ui;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.appwidget.AppWidgetManager;
-import android.content.ContentResolver;
 import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Paint;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
-import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.text.style.BackgroundColorSpan;
-import android.text.style.ImageSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -56,11 +44,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -79,7 +67,6 @@ import net.micode.notes.ui.NoteEditText.OnTextViewChangeListener;
 import net.micode.notes.widget.NoteWidgetProvider_2x;
 import net.micode.notes.widget.NoteWidgetProvider_4x;
 
-import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -164,24 +151,8 @@ public class NoteEditActivity extends Activity implements OnClickListener,
     private String mUserQuery;
     private Pattern mPattern;
 
-    //注释掉源代码
-    /*@Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        this.setContentView(R.layout.note_edit);
-
-        if (savedInstanceState == null && !initActivityState(getIntent())) {
-            finish();
-            return;
-        }
-        initResources();
-    }
-*/
-    //添加新方法，处理用户点击按钮以选择图片的功能
-    private final int PHOTO_REQUEST=1;//定义请求码，用于识别返回的结果
 
     @Override
-
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);//onCreate 方法是 Activity 生命周期的一部分，通常在 Activity 创建时调用。
         this.setContentView(R.layout.note_edit);//设置了布局视图为 note_edit。
@@ -191,23 +162,27 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             return;
         }
         initResources();
-
-        //根据id获取添加图片按钮
-        final ImageButton add_img_btn = (ImageButton) findViewById(R.id.add_img_btn);
-        //为点击图片按钮设置监听器
-        add_img_btn.setOnClickListener(new View.OnClickListener() {
+        final Button clearButton = findViewById(R.id.clearButton);
+        clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                Log.d(TAG, "onClick: click add image button");
-                //ACTION_GET_CONTENT: 允许用户选择特殊种类的数据，并返回（特殊种类的数据：照一张相片或录一段音）
-                Intent loadImage = new Intent(Intent.ACTION_GET_CONTENT);
-                //Category属性用于指定当前动作（Action）被执行的环境.
-                //CATEGORY_OPENABLE; 用来指示一个ACTION_GET_CONTENT的intent
-                loadImage.addCategory(Intent.CATEGORY_OPENABLE);//创建一个意图来获取内容，指定要打开的类别为可打开的
-                loadImage.setType("image/*");//并设置 MIME 类型为所有图片类型
-                startActivityForResult(loadImage, PHOTO_REQUEST);//启动活动以让用户选择图片。
+            public void onClick(View v) {
+                showClearConfirmationDialog(); // 显示确认对话框
             }
         });
+    }
+    // 显示确认对话框
+    private void showClearConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("确认")
+                .setMessage("您确定要清空内容吗？")
+                .setPositiveButton("是", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        clearNote(); // 清空内容
+                    }
+                })
+                .setNegativeButton("否", null) // 取消操作
+                .show();
     }
 
     /**
@@ -343,8 +318,6 @@ public class NoteEditActivity extends Activity implements OnClickListener,
          */
         showAlertHeader();
         ////////
-        convertToImage();
-        ////////
     }
 
     private void showAlertHeader() {
@@ -362,47 +335,6 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             mNoteHeaderHolder.tvAlertDate.setVisibility(View.GONE);
             mNoteHeaderHolder.ivAlertIcon.setVisibility(View.GONE);
         };
-    }
-    //加入代码，目的是将文本中的特定格式的图片路径替换为实际的图片对象。
-    private void convertToImage() {
-        //查找 ID 为 note_edit_view 的控件，将返回的视图强制转换为 NoteEditText 类型
-        NoteEditText noteEditText = (NoteEditText) findViewById(R.id.note_edit_view); //获取当前的edit
-        Editable editable = noteEditText.getText();//1.获取控件中的文本内容
-        String noteText = editable.toString(); //2.将note内容转换为字符串
-        int length = editable.length(); //内容的长度
-        //3.截取img片段 [local]+uri+[local]，提取uri
-        for(int i = 0; i < length; i++) {
-            for(int j = i; j < length; j++) {
-                String img_fragment = noteText.substring(i, j+1); //img_fragment：关于图片路径的片段
-                if(img_fragment.length() > 15 && img_fragment.endsWith("[/local]") && img_fragment.startsWith("[local]")){
-                int limit = 7;  //[local]为7个字符
-                //[local][/local]共15个字符，剩下的为真正的path长度
-                int len = img_fragment.length()-15;
-                //从[local]之后的len个字符就是path
-                String path = img_fragment.substring(limit,limit+len);//获取到了图片路径
-                Bitmap bitmap = null;
-                Log.d(TAG, "图片的路径是："+path);
-                try {
-                    bitmap = BitmapFactory.decodeFile(path);//将图片路径解码为图片格式
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                if(bitmap!=null){  //若图片存在
-                    Log.d(TAG, "图片不为null");
-                    ImageSpan imageSpan = new ImageSpan(NoteEditActivity.this, bitmap);
-                    //4.创建一个SpannableString对象，以便插入用ImageSpan对象封装的图像
-                    String ss = "[local]" + path + "[/local]";
-                    SpannableString spannableString = new SpannableString(ss);
-                    //5.将指定的标记对象附加到文本的开始...结束范围
-                    spannableString.setSpan(imageSpan, 0, ss.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    Log.d(TAG, "Create spannable string success!");
-                    Editable edit_text = noteEditText.getEditableText();
-                    edit_text.delete(i,i+len+15); //6.删掉图片路径的文字
-                    edit_text.insert(i, spannableString); //7.在路径的起始位置插入图片
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -874,8 +806,6 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             mEditTextList.setVisibility(View.GONE);
             mNoteEditor.setVisibility(View.VISIBLE);
             ///////////
-            convertToImage();
-            //////////
         }
     }
 
@@ -968,116 +898,8 @@ public class NoteEditActivity extends Activity implements OnClickListener,
         Toast.makeText(this, resId, duration).show();
     }
 
-    //获取文件的real path
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    public String getPath(final Context context, final Uri uri) {
-
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;//检查当前 Android 版本是否为 KitKat 或更高。
-
-        // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-            if (isMediaDocument(uri)) {//检查 uri 是否是媒体文档（例如图片、视频等）。
-                final String docId = DocumentsContract.getDocumentId(uri);//如果是，从 URI 中提取文档 ID。
-                final String[] split = docId.split(":");//将文档 ID 按照冒号 (:) 分隔成数组，第一部分是类型，第二部分是实际 ID。
-                final String type = split[0];//获取分隔后的第一部分，表示文档的类型
-
-                Uri contentUri = null;
-                if ("image".equals(type)) {//是图片
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;//根据提取的类型设置相应的 contentUri。
-                }
-
-                final String selection = "_id=?";//过文档 ID 来过滤结果
-                final String[] selectionArgs = new String[]{split[1]};//取文档的实际ID
-                //执行查询并返回所需的数据列，例如文件的绝对路径。
-                return getDataColumn(context, contentUri, selection, selectionArgs);
-            }
-        }
-        // Media
-        else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            return getDataColumn(context, uri, null, null);
-        }
-        // File
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-        return null;
+    private void clearNote() {
+        EditText noteEditText = findViewById(R.id.note_edit_view); // 请确保你的布局中有这个ID的EditText
+        noteEditText.setText(""); // 清空输入框内容
     }
-
-    //获取数据列_获取此 Uri 的数据列的值。这对MediaStore Uris 和其他基于文件的 ContentProvider。
-    public String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
-
-        Cursor cursor = null;//声明一个 Cursor 对象来保存查询结果。
-        final String column = "_data";//定义了要查询的列名，这里选择的是 _data，通常用于存储文件路径或数据的位置。
-        final String[] projection = {column};//创建一个字符串数组，将列名包含在内。这个数组用于指定查询中需要返回的列。
-
-        try {
-            //该行使用内容解析器根据提供的 URI 执行查询。projection、selection 和 selectionArgs 用于过滤和限制返回的数据。
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
-            if (cursor != null && cursor.moveToFirst()) {//检查游标是否为 null，并移动到第一行，以确认查询返回了结果。
-                final int column_index = cursor.getColumnIndexOrThrow(column);//使用 getColumnIndexOrThrow 来获取指定列的索引。如果列不存在，将抛出异常。
-                return cursor.getString(column_index);//返回指定列的字符串值。
-            }
-        } finally {//在 finally 块中关闭游标以释放资源，确保即使发生异常也能正确关闭。
-            if (cursor != null)
-                cursor.close();
-        }
-        return null;
-    }
-
-    //是否为媒体文件
-    public boolean isMediaDocument(Uri uri) {
-        return "com.android.providers.media.documents".equals(uri.getAuthority());
-    }
-
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        super.onActivityResult(requestCode, resultCode, intent);
-        ContentResolver resolver = getContentResolver();
-        switch (requestCode) {//使用 switch 来处理不同的请求码，确保只有处理 PHOTO_REQUEST 的逻辑被执行。
-            case PHOTO_REQUEST:
-                Uri originalUri = intent.getData(); //1.获得图片的真实路径
-                Bitmap bitmap = null;
-                try {
-                    bitmap = BitmapFactory.decodeStream(resolver.openInputStream(originalUri));//2.解码图片
-                } catch (FileNotFoundException e) {//处理可能的 FileNotFoundException 异常。
-                    Log.d(TAG, "onActivityResult: get file_exception");
-                    e.printStackTrace();
-                }
-
-                if (bitmap != null) {
-                    //3.根据Bitmap对象创建ImageSpan对象
-                    Log.d(TAG, "onActivityResult: bitmap is not null");
-                    ImageSpan imageSpan = new ImageSpan(NoteEditActivity.this, bitmap);
-                    String path = getPath(this, originalUri);
-                    //4.使用[local][/local]将path括起来，用于之后方便识别图片路径在note中的位置
-                    String img_fragment = "[local]" + path + "[/local]";
-                    //创建一个SpannableString对象，以便插入用ImageSpan对象封装的图像
-                    SpannableString spannableString = new SpannableString(img_fragment);
-                    spannableString.setSpan(imageSpan, 0, img_fragment.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    //5.将选择的图片追加到EditText中光标所在位置
-                    NoteEditText e = (NoteEditText) findViewById(R.id.note_edit_view);
-                    int index = e.getSelectionStart(); //获取光标所在位置
-                    Log.d(TAG, "Index是: " + index);
-                    Editable edit_text = e.getEditableText();
-                    edit_text.insert(index, spannableString); //将图片插入到光标所在位置
-
-                    mWorkingNote.mContent = e.getText().toString();
-                    //6.把改动提交到数据库中,两个数据库表都要改的
-                    ContentResolver contentResolver = getContentResolver();
-                    ContentValues contentValues = new ContentValues();
-                    final long id = mWorkingNote.getNoteId();
-                    contentValues.put("snippet", mWorkingNote.mContent);
-                    contentResolver.update(Uri.parse("content://micode_notes/note"), contentValues, "_id=?", new String[]{"" + id});
-                    ContentValues contentValues1 = new ContentValues();
-                    contentValues1.put("content", mWorkingNote.mContent);
-                    contentResolver.update(Uri.parse("content://micode_notes/data"), contentValues1, "mime_type=? and note_id=?", new String[]{"vnd.android.cursor.item/text_note", "" + id});
-
-                } else {
-                    Toast.makeText(NoteEditActivity.this, "获取图片失败", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            default:
-                break;
-        }
-    }
-    //
 }
