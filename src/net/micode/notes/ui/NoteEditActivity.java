@@ -548,22 +548,51 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             case R.id.menu_delete_remind:
                 mWorkingNote.setAlertDate(0, false);
                 break;
-            case R.id.menu_count_word://数字统计
-                AlertDialog.Builder builder1 = new AlertDialog.Builder(this);//对话框对象
-                builder1.setIcon(android.R.drawable.ic_dialog_alert);//对话框图标
-                TextView content=(TextView)findViewById(R.id.note_edit_view);
-                int c =content.length();
-                builder1.setMessage("带符号字数总和统计为："+ c);
-                builder1.setPositiveButton(android.R.string.ok,
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                finish();
-                            }
-                        });//确定按钮
-                builder1.setNegativeButton(android.R.string.cancel, null);//取消按钮
-                builder1.show();//对话框启动
-                break;
-                default:
+            case R.id.menu_count_word: // 数字统计
+    AlertDialog.Builder builder1 = new AlertDialog.Builder(this); // 创建对话框对象
+    builder1.setIcon(android.R.drawable.ic_dialog_alert); // 设置对话框图标为警告图标
+    TextView content = (TextView) findViewById(R.id.note_edit_view); // 获取文本视图内容
+    String text = content.getText().toString(); // 获取文本内容
+
+    // 初始化计数器
+    int totalCount = text.length(); // 总字符数
+    int englishCount = 0; // 英文字符计数
+    int chineseCount = 0; // 中文字符计数
+    int specialCount = 0; // 特殊字符计数
+
+    // 遍历文本内容
+    for (char ch : text.toCharArray()) {
+        if (Character.isLetter(ch)) { // 判断是否为字母
+            if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z') {
+                englishCount++; // 英文字符
+            } else if (ch >= 0x4E00 && ch <= 0x9FFF) {
+                chineseCount++; // 中文字符
+            } else {
+                specialCount++; // 其他字符（如符号）
+            }
+        } else if (!Character.isWhitespace(ch)) {
+            specialCount++; // 统计其他非空白字符为特殊字符
+        }
+    }
+
+    // 设置对话框消息，显示各种字符统计结果
+    builder1.setMessage("总字符数: " + totalCount + "\n" +
+                         "英文字符数: " + englishCount + "\n" +
+                         "中文字符数: " + chineseCount + "\n" +
+                         "特殊字符数: " + specialCount); // 设置对话框消息
+
+    builder1.setPositiveButton(android.R.string.ok, // 设置“确定”按钮
+        new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                finish(); // 关闭当前活动
+            }
+        }
+    ); // 确定按钮
+    builder1.setNegativeButton(android.R.string.cancel, null); // 设置“取消”按钮，不做任何操作
+    builder1.show(); // 显示对话框
+    break;
+default:
+
                 break;
         }
         return true;
