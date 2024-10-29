@@ -30,7 +30,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Paint;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
+import android.preference.PreferenceManager;;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -151,8 +151,21 @@ public class NoteEditActivity extends Activity implements OnClickListener,
     private String mUserQuery;
     private Pattern mPattern;
 
+    //注释掉源代码
+    /*@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        this.setContentView(R.layout.note_edit);
 
+        if (savedInstanceState == null && !initActivityState(getIntent())) {
+            finish();
+            return;
+        }
+        initResources();
+    }
+*/
     @Override
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);//onCreate 方法是 Activity 生命周期的一部分，通常在 Activity 创建时调用。
         this.setContentView(R.layout.note_edit);//设置了布局视图为 note_edit。
@@ -162,11 +175,23 @@ public class NoteEditActivity extends Activity implements OnClickListener,
             return;
         }
         initResources();
+
         final Button clearButton = findViewById(R.id.clearButton);
         clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showClearConfirmationDialog(); // 显示确认对话框
+            }
+        });
+
+        final EditText editText = findViewById(R.id.note_edit_view); // 通过 ID 获取布局中的 EditText 控件，用于用户输入文本。
+        Button button = findViewById(R.id.LastButton);//获取布局中的 Button 控件，赋值给 button 变量，以便后续设置点击事件。
+        button.setOnClickListener(new View.OnClickListener() {//创建一个新的匿名内部类，实现 OnClickListener 接口。
+            @Override
+            public void onClick(View v) {//参数 v 是被点击的视图（即 button）
+                String noteContent= editText.getText().toString(); // 获取当前输入的文本
+                editText.requestFocus();//请求焦点
+                editText.setSelection(noteContent.length()); // 移动光标到末尾
             }
         });
     }
